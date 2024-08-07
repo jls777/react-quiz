@@ -1,27 +1,32 @@
 import { createContext, useContext, useEffect, useReducer } from "react";
-import questions from "../data/questions";
 
 const QuizContext = createContext();
 
-const SECS_PER_QUESTION = 30;
-
 const initialState = {
-  questions,
-  status: "ready",
+  questions: [],
+  status: "loading",
   index: 0,
   answer: null,
   points: 0,
   highscore: 0,
-  secondsRemaining: questions.length * SECS_PER_QUESTION,
+  secondsRemaining: 10,
 };
+
+const SECS_PER_QUESTION = 30;
 
 function reducer(state, action) {
   switch (action.type) {
-    case "start":
+    case "dataReceived":
       return {
         ...state,
-        status: "active",
+        questions: action.payload,
+        status: "ready",
+        secondsRemaining: state.questions.length * SECS_PER_QUESTION,
       };
+    case "dataFailed":
+      return { ...state, status: "error" };
+    case "start":
+      return { ...state, status: "active" };
     case "newAnswer":
       const question = state.questions.at(state.index);
 
@@ -67,12 +72,12 @@ function QuizProvider({ children }) {
     0
   );
 
-  // useEffect(function () {
-  //   fetch("http://localhost:8000/questions")
-  //     .then((res) => res.json())
-  //     .then((data) => dispatch({ type: "dataReceived", payload: data }))
-  //     .catch((err) => dispatch({ type: "dataFailed" }));
-  // }, []);
+  useEffect(function () {
+    fetch("http://localhost:8000/questions")
+      .then((res) => res.json())
+      .then((data) => dispatch({ type: "dataReceived", payload: data }))
+      .catch((err) => dispatch({ type: "dataFailed" }));
+  }, []);
 
   return (
     <QuizContext.Provider
